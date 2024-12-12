@@ -1,5 +1,4 @@
-import mongoose, { Document, Schema, Model } from "mongoose";
-
+import mongoose, { Schema, Document } from "mongoose";
 
 export interface ITodo extends Document {
   text: string;
@@ -7,19 +6,19 @@ export interface ITodo extends Document {
   dueDate: string;
   scheduledDate: string;
   isImportant: boolean;
+  createdAt: Date;  
+  updatedAt: Date;
 }
 
+const TodoSchema: Schema = new Schema(
+  {
+    text: { type: String, required: true },
+    completed: { type: Boolean, default: false },
+    dueDate: { type: String, required: true },
+    scheduledDate: { type: String, required: true },
+    isImportant: { type: Boolean, default: false },
+  },
+  { timestamps: true } 
+);
 
-const todoSchema: Schema<ITodo> = new Schema({
-  text: { type: String, required: true }, // Text of the task
-  completed: { type: Boolean, default: false }, // Completion status
-  dueDate: { type: String, required: true }, // Due date as a string
-  scheduledDate: { type: String, required: true }, // Scheduled date as a string
-  isImportant: { type: Boolean, default: false }, // Importance status
-});
-
-
-const Todo: Model<ITodo> = mongoose.model<ITodo>("Todo", todoSchema);
-
-export default Todo;
-
+export default mongoose.model<ITodo>("Todo", TodoSchema);
