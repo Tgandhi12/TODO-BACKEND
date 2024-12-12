@@ -1,74 +1,73 @@
 import { Router, Request, Response } from "express";
-import Todo from '../models/todomodels';
+import Todo from "../models/Todo";
+import mongoose from "mongoose";
 
-const router: Router = Router();
+const router = Router();
 
+// Get all todos
 router.get("/", async (req: Request, res: Response) => {
   try {
     const todos = await Todo.find();
     res.status(200).json(todos);
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch todos" });
+    const errorMessage = err instanceof Error ? err.message : "Unknown error";
+    res.status(500).send(errorMessage);
   }
 });
 
+// Add a new todo
 router.post("/", async (req: Request, res: Response) => {
-  const { text, dueDate, scheduledDate, isImportant } = req.body;
-
-  if (!text || !dueDate || !scheduledDate) {
-    return res.status(400).json({ error: "Missing required fields" });
-  }
-
-  const newTodo = new Todo({
-    text,
-    completed: false,
-    dueDate,
-    scheduledDate,
-    isImportant: isImportant || false,
-  });
-
   try {
+    const newTodo = new Todo(req.body);
     const savedTodo = await newTodo.save();
     res.status(201).json(savedTodo);
   } catch (err) {
-    res.status(500).json({ error: "Failed to save todo" });
+    const errorMessage = err instanceof Error ? err.message : "Unknown error";
+    res.status(500).send(errorMessage);
   }
 });
 
+// Update a todo
 router.put("/:id", async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { completed, isImportant } = req.body;
+  console.log("------",id)
+  console.log(req.body);
+  // Check if ID is valid
+  if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).send("Invalid or missing Todo ID");
+  }
 
   try {
-    const updatedTodo = await Todo.findByIdAndUpdate(
-      id,
-      { completed, isImportant },
-      { new: true, runValidators: true }
-    );
-
+    const updatedTodo = await Todo.findByIdAndUpdate(id, req.body, { new: true });
     if (!updatedTodo) {
-      return res.status(404).json({ error: "Todo not found" });
+      return res.status(404).send("Todo not found");
     }
-
     res.status(200).json(updatedTodo);
   } catch (err) {
-    res.status(500).json({ error: "Failed to update todo" });
+    console.log(err);
+    const errorMessage = err instanceof Error ? err.message : "Unknown error";
+    res.status(500).send(errorMessage);
   }
 });
 
+// Delete a todo
 router.delete("/:id", async (req: Request, res: Response) => {
   const { id } = req.params;
 
+  // Check if ID is valid
+  if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).send("Invalid or missing Todo ID");
+  }
+
   try {
     const deletedTodo = await Todo.findByIdAndDelete(id);
-
     if (!deletedTodo) {
-      return res.status(404).json({ error: "Todo not found" });
+      return res.status(404).send("Todo not found");
     }
-
-    res.status(200).json({ message: "Todo deleted", deletedTodo });
+    res.status(200).json(deletedTodo);
   } catch (err) {
-    res.status(500).json({ error: "Failed to delete todo" });
+    const errorMessage = err instanceof Error ? err.message : "Unknown error";
+    res.status(500).send(errorMessage);
   }
 });
 
