@@ -17,6 +17,7 @@ const TodoSchema: Schema = new Schema(
     dueDate: { type: String, required: true },
     scheduledDate: { type: String, required: true },
     isImportant: { type: Boolean, default: false },
+      userId: { type: String, required: true }, 
   },
   { timestamps: true } 
 );
