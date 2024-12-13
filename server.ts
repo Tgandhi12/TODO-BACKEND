@@ -3,6 +3,8 @@ import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
 import todoRoutes from "./routes/todoRoutes";
+import { authRoutes } from "./routes/Auth";
+import { authenticate } from "./middleware/authMiddleware"; // Middleware for JWT authentication
 
 dotenv.config();
 
@@ -19,8 +21,16 @@ mongoose
   .then(() => console.log("MongoDB connected"))
   .catch((error) => console.log("Error connecting to MongoDB:", error));
 
-// Routes
-app.use("/todos", todoRoutes);
+// Authentication Routes
+app.use("/auth", authRoutes);
+
+// Protected Todo Routes
+app.use("/todos", authenticate, todoRoutes); // Apply JWT authentication middleware
+
+// Health check
+app.get("/", (req: Request, res: Response) => {
+  res.send("API is running...");
+});
 
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
