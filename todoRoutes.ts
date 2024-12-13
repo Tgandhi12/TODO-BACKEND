@@ -1,73 +1,76 @@
-import { Router, Request, Response } from "express";
+// src/routes/todoRoutes.ts
+import { Router } from "express";
 import Todo from "../models/Todo";
-import mongoose from "mongoose";
+import { authenticate } from "../middleware/authMiddleware"; // Authentication middleware
 
 const router = Router();
 
-// Get all todos
-router.get("/", async (req: Request, res: Response) => {
+// Apply authentication middleware to all routes
+router.use(authenticate);
+
+// Get todos for the authenticated user
+router.get("/", async (req, res) => {
   try {
-    const todos = await Todo.find();
+    const userId = req.body.user._id; // Accessing userId from req.body.user (set by authenticate middleware)
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const todos = await Todo.find({ userId });
     res.status(200).json(todos);
   } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : "Unknown error";
-    res.status(500).send(errorMessage);
+    res.status(500).send("Error fetching todos");
   }
 });
 
-// Add a new todo
-router.post("/", async (req: Request, res: Response) => {
+// Add a new todo for the authenticated user
+router.post("/", async (req, res) => {
   try {
-    const newTodo = new Todo(req.body);
+    const userId = req.body.user._id; // Accessing userId from req.body.user (set by authenticate middleware)
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const newTodo = new Todo({ ...req.body, userId }); // Ensure userId is included in the Todo
     const savedTodo = await newTodo.save();
     res.status(201).json(savedTodo);
   } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : "Unknown error";
-    res.status(500).send(errorMessage);
+    console.error("Error creating todo:", err);
+    res.status(500).send("Error creating todo");
   }
 });
 
 // Update a todo
-router.put("/:id", async (req: Request, res: Response) => {
-  const { id } = req.params;
-  console.log("------",id)
-  console.log(req.body);
-  // Check if ID is valid
-  if (!id || !mongoose.Types.ObjectId.isValid(id)) {
-    return res.status(400).send("Invalid or missing Todo ID");
-  }
-
+router.put("/:id", async (req, res) => {
   try {
-    const updatedTodo = await Todo.findByIdAndUpdate(id, req.body, { new: true });
-    if (!updatedTodo) {
-      return res.status(404).send("Todo not found");
-    }
+    const userId = req.body.user._id; // Accessing userId from req.body.user (set by authenticate middleware)
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const { id } = req.params;
+    const updatedTodo = await Todo.findOneAndUpdate(
+      { _id: id, userId },
+      req.body,
+      { new: true }
+    );
+
+    if (!updatedTodo) return res.status(404).send("Todo not found");
+
     res.status(200).json(updatedTodo);
   } catch (err) {
-    console.log(err);
-    const errorMessage = err instanceof Error ? err.message : "Unknown error";
-    res.status(500).send(errorMessage);
+    res.status(500).send("Error updating todo");
   }
 });
 
 // Delete a todo
-router.delete("/:id", async (req: Request, res: Response) => {
-  const { id } = req.params;
-
-  // Check if ID is valid
-  if (!id || !mongoose.Types.ObjectId.isValid(id)) {
-    return res.status(400).send("Invalid or missing Todo ID");
-  }
-
+router.delete("/:id", async (req, res) => {
   try {
-    const deletedTodo = await Todo.findByIdAndDelete(id);
-    if (!deletedTodo) {
-      return res.status(404).send("Todo not found");
-    }
+    const userId = req.body.user._id; // Accessing userId from req.body.user (set by authenticate middleware)
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const { id } = req.params;
+    const deletedTodo = await Todo.findOneAndDelete({ _id: id, userId });
+
+    if (!deletedTodo) return res.status(404).send("Todo not found");
+
     res.status(200).json(deletedTodo);
   } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : "Unknown error";
-    res.status(500).send(errorMessage);
+    res.status(500).send("Error deleting todo");
   }
 });
 
